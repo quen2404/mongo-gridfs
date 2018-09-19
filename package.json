@@ -1,0 +1,50 @@
+{
+  "name": "mongo-gridfs",
+  "description": "Uses the native GridFSBucket-Api from the new MongoDB NodeJS Driver and wrap it as Promise-Objects",
+  "author": "Quentin Desramé <quen2404@gmail.com>",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/quen2404/mongo-gridfs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/quen2404/mongo-gridfs/issues/new"
+  },
+  "keywords": [
+    "mongodb",
+    "gridfs",
+    "native-promise",
+    "gridFSBucket",
+    "gridfs-bucket",
+    "nodejs",
+    "es6",
+    "typescript",
+    "mongoose",
+    "mongo",
+    "async"
+  ],
+  "version": "0.0.0",
+  "devDependencies": {
+    "@types/chai": "^4.1.5",
+    "@types/mocha": "^2.2.48",
+    "@types/mongodb": "^3.1.7",
+    "@types/node": "^10.10.1",
+    "chai": "^4.1.2",
+    "jsdoc": "^3.5.5",
+    "mocha": "^5.2.0",
+    "rimraf": "^2.6.2",
+    "ts-node": "^7.0.1",
+    "tsd-jsdoc": "^2.0.0-beta.6",
+    "tslint": "^5.11.0",
+    "typescript": "^2.9.2"
+  },
+  "dependencies": {
+    "es6-promise": "^4.2.5",
+    "mongodb": "^3.1.6"
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc"
+  }
+}
