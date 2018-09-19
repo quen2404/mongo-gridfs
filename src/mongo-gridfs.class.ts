@@ -1,6 +1,7 @@
 import {ObjectID} from "bson";
 import * as fs from "fs";
-import {GridFSBucket, GridFSBucketReadStream, MongoClient, MongoClientOptions} from "mongodb";
+import {Db, GridFSBucket, GridFSBucketReadStream, MongoClient, MongoClientOptions} from "mongodb";
+import {Connection, Mongoose} from "mongoose";
 import {Stream} from "stream";
 
 export interface IGridFSObject {
@@ -24,7 +25,7 @@ export interface IGridFSWriteOption {
 
 export class MongoGridFS {
 
-    private readonly mongoClient: MongoClient;
+    private readonly mongoClient: MongoClient|Mongoose;
     private bucketName: string;
     private basePath: string;
 
@@ -36,13 +37,13 @@ export class MongoGridFS {
      * @param {string} bucketName
      * @param {string} basePath
      */
-    constructor(mongoClient: MongoClient, bucketName: string, basePath?: string) {
+    constructor(mongoClient: MongoClient|Mongoose, bucketName: string, basePath?: string) {
         this.mongoClient = mongoClient;
         this.bucketName = bucketName || "fs";
         this.basePath = basePath || `${__dirname}/../cache`;
     }
 
-    get connection(): MongoClient {
+    get connection(): MongoClient|Mongoose {
         return this.mongoClient;
     }
 
@@ -188,7 +189,12 @@ export class MongoGridFS {
     }
 
     private get bucket(): GridFSBucket {
-        const connection = this.mongoClient.db();
+        let connection: Db;
+        if (this.mongoClient instanceof MongoClient) {
+            connection = this.mongoClient.db();
+        } else {
+            connection = this.mongoClient.connection.db;
+        }
         return new GridFSBucket(connection, {bucketName: this.bucketName});
     }
 }
