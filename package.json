@@ -45,6 +45,7 @@
     "mongodb": "^3.1.6"
   },
   "scripts": {
-    "build": "rimraf dist && tsc"
+    "build": "rimraf dist && tsc",
+    "prepare": "npm run build"
   }
 }
