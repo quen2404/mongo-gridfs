@@ -1,8 +1,9 @@
-import {ObjectID} from "bson";
-import * as fs from "fs";
-import {Db, GridFSBucket, GridFSBucketReadStream, MongoClient, MongoClientOptions} from "mongodb";
-import {Connection, Mongoose} from "mongoose";
-import {Stream} from "stream";
+import {ObjectID} from 'bson';
+import * as fs from 'fs';
+import {Db, GridFSBucket, GridFSBucketReadStream} from 'mongodb';
+import osTmpdir = require('os-tmpdir');
+import {Stream} from 'stream';
+import uniqueFilename = require('unique-filename');
 
 export interface IGridFSObject {
     _id: ObjectID;
@@ -23,28 +24,51 @@ export interface IGridFSWriteOption {
     aliases?: string[];
 }
 
-export class MongoGridFS {
+export interface IDownloadOptions {
+    filename: boolean | string;
+    targetDir?: string;
+}
 
-    private readonly mongoClient: MongoClient|Mongoose;
-    private bucketName: string;
-    private basePath: string;
+export class MongoGridFS {
 
     /**
      * Constructor
-     * @param {mongoClient} mongoClient
-     * @param {string} databaseName
-     * @param {MongoClientOptions} mongoOptions
+     * @param {connection} connection
      * @param {string} bucketName
-     * @param {string} basePath
      */
-    constructor(mongoClient: MongoClient|Mongoose, bucketName: string, basePath?: string) {
-        this.mongoClient = mongoClient;
-        this.bucketName = bucketName || "fs";
-        this.basePath = basePath || `${__dirname}/../cache`;
+    constructor(private readonly connection: Db, private readonly bucketName: string = 'fs') {
     }
 
-    get connection(): MongoClient|Mongoose {
-        return this.mongoClient;
+    private get bucket(): GridFSBucket {
+        return new GridFSBucket(this.connection, {bucketName: this.bucketName});
+    }
+
+    public static getDownloadPath(object: IGridFSObject, options: IDownloadOptions = {
+        filename: false,
+    }) {
+        let finalPath = '';
+        if (!options.targetDir) {
+            if (typeof options.filename === 'string') {
+                finalPath = `${osTmpdir()}/${options.filename}`;
+            } else {
+                if (options.filename === true) {
+                    finalPath = `${osTmpdir()}/${object._id}`;
+                } else {
+                    finalPath = uniqueFilename(osTmpdir());
+                }
+            }
+        } else {
+            if (typeof options.filename === 'string') {
+                finalPath = `${options.targetDir}/${options.filename}`;
+            } else {
+                if (options.filename === true) {
+                    finalPath = object.filename;
+                } else {
+                    finalPath = uniqueFilename(options.targetDir);
+                }
+            }
+        }
+        return finalPath;
     }
 
     /**
@@ -60,34 +84,21 @@ export class MongoGridFS {
     /**
      * Save the File from the GridFs to the filesystem and get the Path back
      * @param {string} id
-     * @param {string} fileName
-     * @param {string} filePath
+     * @param {IDownloadOptions} options
      * @return {Promise<string>}
      */
-    public async downloadFile(id: string, fileName?: string, filePath?: string): Promise<string> {
+    public async downloadFile(id: string, options?: IDownloadOptions): Promise<string> {
         const object = await this.findById(id);
-        if (!fileName) {
-            fileName = object.filename;
-        }
-        if (!filePath) {
-            filePath = "";
-        }
-        if (this.basePath.charAt(this.basePath.length - 1) !== "/") {
-            filePath += "/";
-        }
-        if (!fs.existsSync(`${this.basePath}${filePath}`)) {
-            throw new Error("Path not found");
-        }
+        const downloadPath = MongoGridFS.getDownloadPath(object, options);
         return new Promise<string>(async (resolve, reject) => {
             this.bucket.openDownloadStream(object._id)
-                .once("error", async (error) => {
+                .once('error', async (error) => {
                     reject(error);
                 })
-                .once("end", async () => {
-                    // await client.close();
-                    resolve(`${this.basePath}${filePath}${fileName}`);
+                .once('end', async () => {
+                    resolve(downloadPath);
                 })
-                .pipe(fs.createWriteStream(`${this.basePath}${filePath}${fileName}`));
+                .pipe(fs.createWriteStream(downloadPath, {}));
         });
     }
 
@@ -108,7 +119,7 @@ export class MongoGridFS {
     public async findOne(filter: any): Promise<IGridFSObject> {
         const result = await this.find(filter);
         if (result.length === 0) {
-            throw new Error("No Object found");
+            throw new Error('No Object found');
         }
         return result[0];
     }
@@ -135,10 +146,10 @@ export class MongoGridFS {
                 contentType: options.contentType,
                 metadata: options.metadata,
             }))
-            .on("error", async (err) => {
+            .on('error', async (err) => {
                 reject(err);
             })
-            .on("finish", async (item: IGridFSObject) => {
+            .on('finish', async (item: IGridFSObject) => {
                 resolve(item);
             }),
         );
@@ -156,7 +167,7 @@ export class MongoGridFS {
         options: IGridFSWriteOption,
         deleteFile: boolean = true): Promise<IGridFSObject> {
         if (!fs.existsSync(uploadFilePath)) {
-            throw new Error("File not found");
+            throw new Error('File not found');
         }
         const tryDeleteFile = (obj?: any): any => {
             if (fs.existsSync(uploadFilePath) && deleteFile === true) {
@@ -186,15 +197,5 @@ export class MongoGridFS {
                 resolve(true);
             }));
         });
-    }
-
-    private get bucket(): GridFSBucket {
-        let connection: Db;
-        if (this.mongoClient instanceof MongoClient) {
-            connection = this.mongoClient.db();
-        } else {
-            connection = this.mongoClient.connection.db;
-        }
-        return new GridFSBucket(connection, {bucketName: this.bucketName});
     }
 }
