@@ -21,7 +21,7 @@ OR
 
 ```js
 const mongoDBConnection = await MongoClient.connect('mongodb://localhost:27017/files');
-let gridFS = new MongoGridFS(mongoDBConnection, "attachments", __dirname);
+let gridFS = new MongoGridFS(mongoDBConnection, "attachments");
 gridFS.findById("59e085f272882d728e2fa4c2").then((item) => {
     console.log(item);
 }).catch((err) => {
@@ -33,8 +33,8 @@ gridFS.findById("59e085f272882d728e2fa4c2").then((item) => {
 ### With Mongoose
 
 ```js
-const mongoose = await Mongoose.connect('mongodb://localhost:27017/files');
-let gridFS = new MongoGridFS(mongoose, "attachments", __dirname);
+const mongooseConnection = await Mongoose.connect('mongodb://localhost:27017/files');
+let gridFS = new MongoGridFS(mongooseConnection.db, "attachments");
 gridFS.findById("59e085f272882d728e2fa4c2").then((item) => {
     console.log(item);
 }).catch((err) => {
@@ -65,8 +65,11 @@ You will get the file simple written to the filesystem directly from the Databas
 If nothing found at the Database, then it will reject and the catch-block will be executed.
 
 ```js
-gridFS.downloadFile("59e085f272882d728e2fa4c2", "test.gif").then((item) => {
-    console.log(item);
+gridFS.downloadFile("59e085f272882d728e2fa4c2", {
+    filename: "test.gif",
+    targetDir: "/tmp"
+}).then((downloadedFilePath) => {
+    console.log(downloadedFilePath);
 }).catch((err) => {
     console.error(err);
 });
