@@ -1,3 +1,6 @@
+# 1.1.0
+ * Expose `bucketName`, `bucket` & `connection` properties in public
+
 # 1.0.0
  * Change api for downloading files
  * Change constructor parameters
