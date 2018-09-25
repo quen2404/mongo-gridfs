@@ -36,10 +36,10 @@ export class MongoGridFS {
      * @param {connection} connection
      * @param {string} bucketName
      */
-    constructor(private readonly connection: Db, private readonly bucketName: string = 'fs') {
+    constructor(public readonly connection: Db, public readonly bucketName: string = 'fs') {
     }
 
-    private get bucket(): GridFSBucket {
+    public get bucket(): GridFSBucket {
         return new GridFSBucket(this.connection, {bucketName: this.bucketName});
     }
 
